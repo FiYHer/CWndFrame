@@ -40,9 +40,9 @@ using namespace std;//必备命名空间
 #define CWButtonY 0//默认位置Y
 #define CWButtonID 5000//按钮的默认ID
 #define CWButtonPushDown (WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON)//下压式按钮
-#define CWButtonCheckBox (WS_CHILD | WS_VISIBLE | BS_CHECKBOX)//复选框按钮
-#define CWButtonState (WS_CHILD | WS_VISIBLE | BS_3STATE)//三选按钮
-#define CWButtonRadio (WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON)//单选按钮
+#define CWButtonCheckBox (WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX )//复选框按钮
+#define CWButtonState (WS_CHILD | WS_VISIBLE | BS_AUTO3STATE)//三选按钮
+#define CWButtonRadio (WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON)//复选按钮
 #define CWButtonGroup (WS_CHILD | WS_VISIBLE | BS_GROUPBOX)//分组按钮
 #define CWButtonCheck 1//选择状态
 #define CWButtonUnCheck 0//不选择状态
@@ -61,13 +61,16 @@ using namespace std;//必备命名空间
 #define CWEditNumber (WS_CHILD|WS_VISIBLE|ES_NUMBER)//数字编辑框
 #define CWEditReadOnly (WS_CHILD|WS_VISIBLE|ES_READONLY)//只读编辑框
 
-///窗口过程消息相关结构体
-typedef struct strEventInfo
+typedef list<UINT> EventList;
+
+typedef struct strWinProcInfo
 {
-	UINT message;//窗口消息
-	VOID(*lpfn)(HWND, WPARAM, LPARAM);//该消息对应的处理函数
-}EventInfo, *PEventInfo;
-typedef list<EventInfo> EventList;
+	HWND hWnd;
+	UINT message;
+	WPARAM wParam;
+	LPARAM lParam;
+}WinProcInfo,*PWinProcInfo;
+
 
 //创建函数【CreateaWindowExA】参数结构体
 typedef struct strCreateWindowExInfo

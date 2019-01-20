@@ -12,6 +12,7 @@ CWndFrame::CWndFrame()
 	m_WndClass = {};
 	m_CreateWindowExInfo = {};
 	m_WindowHwnd = NULL;
+	m_lpWinProc = nullptr;
 }
 
 
@@ -60,10 +61,15 @@ BOOL CWndFrame::CWCheckMessage(HWND hwnd, UINT message, WPARAM wParam, LPARAM lP
 	BOOL bRet = FALSE;
 	for (auto it : m_EventList)
 	{
-		if (it.message == message)
+		if (it == message && m_lpWinProc != nullptr)
 		{
 			//这里查看信息，有就调用指定函数进行处理
-			it.lpfn(hwnd, wParam, lParam);
+			WinProcInfo ProcInfoTemp = {0};
+			ProcInfoTemp.hWnd = hwnd;
+			ProcInfoTemp.lParam = lParam;
+			ProcInfoTemp.message = message;
+			ProcInfoTemp.wParam = wParam;
+			m_lpWinProc(&ProcInfoTemp);
 			///标记为处理了，后面不需要处理了额
 			bRet = TRUE;
 			break;
@@ -122,7 +128,7 @@ BOOL CWndFrame::CWRegisterClassEx(WNDCLASSEX wnd)
 	}
 	else
 	{
-		m_WndClass = wnd;
+		memcpy((void*)&m_WndClass, (void*)&wnd, sizeof(WNDCLASSEX));
 	}
 	return RegisterClassEx(&m_WndClass);
 }
@@ -187,22 +193,25 @@ HANDLE CWndFrame::CWCreateWindowExA(_In_ DWORD dwExStyle /*= NULL*/, _In_opt_ LP
 	return m_WindowHwnd;
 }
 
-VOID CWndFrame::CWAddEvent(UINT message, VOID(*lpfn)(HWND, WPARAM, LPARAM))
+//设置窗口函数处理过程
+VOID CWndFrame::CWSetWindowProc(VOID(*lpfn)(PWinProcInfo))
+{
+	m_lpWinProc = lpfn;
+}
+
+VOID CWndFrame::CWAddEvent(UINT message)
 {
 	BOOL bRet = FALSE;
 	for (auto it : m_EventList)
 	{
 		//判断这个消息是不是在列表里面了，在了的话就不用在加进去了
-		if (it.message == message)
+		if (it == message)
 			bRet = TRUE;
 	}
 	if (!bRet)
 	{
 		//如果不在的话就加进去
-		EventInfo EventTemp;
-		EventTemp.message = message;
-		EventTemp.lpfn = lpfn;
-		m_EventList.push_back(EventTemp);
+		m_EventList.push_back(message);
 	}
 }
 
@@ -211,7 +220,7 @@ VOID CWndFrame::CWDeleteEvent(UINT message)
 {
 	for (EventList::iterator it = m_EventList.begin(); it != m_EventList.end(); it++)
 	{
-		if (it->message == message)
+		if (*it == message)
 		{
 			m_EventList.erase(it);
 			break;//一定要这个
@@ -219,11 +228,39 @@ VOID CWndFrame::CWDeleteEvent(UINT message)
 	}
 }
 
+//设置主窗口大小
+VOID CWndFrame::CWSetMainWindowSize(int Wide, int High)
+{
+	RECT RectTemp = { 0 };
+	if (GetWindowRect(m_WindowHwnd, &RectTemp) == NULL)return;
+	MoveWindow(m_WindowHwnd, RectTemp.left,RectTemp.top, Wide, High, FALSE);
+}
+
+//设置主窗口位置
+VOID CWndFrame::CWSetMainWindowPos(int X, int Y)
+{
+	RECT RectTemp = { 0 };
+	if (GetWindowRect(m_WindowHwnd, &RectTemp) == NULL)return;
+	MoveWindow(m_WindowHwnd, X, Y, RectTemp.right-RectTemp.left, RectTemp.bottom-RectTemp.top, FALSE);
+}
+
+//设置窗口或者控件的风格
+LONG CWndFrame::CWSetStyle(HWND hWnd,LONG style)
+{
+	return SetWindowLongA(hWnd, GWL_STYLE, style);
+}
+
+//给指定句柄设置一个新的ID
+LONG CWndFrame::CWSetNewID(HWND hWnd, LONG NewId)
+{
+	return SetWindowLongA(hWnd, GWL_ID,NewId);
+}
+
 //初始化按钮信息
 VOID CWndFrame::CWBaseButtonInfo()
 {
 	m_CreateWindowExInfo.dwExStyle = NULL;
-	m_CreateWindowExInfo.dwStyle = WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON | BS_BITMAP;
+	m_CreateWindowExInfo.dwStyle = WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON ;
 	m_CreateWindowExInfo.hInstance = m_Hinstance;
 	m_CreateWindowExInfo.hMenu = (HMENU)CWButtonID;
 	m_CreateWindowExInfo.hWndParent = m_WindowHwnd;
@@ -308,6 +345,30 @@ HWND CWndFrame::CWAddButton(_In_ DWORD dwExStyle /*= NULL*/, _In_opt_ LPCSTR lpC
 	return ButtonIdTemp.hwndinfo.ButtonHwnd;
 }
 
+//添加一个二选复选框
+HWND CWndFrame::CWAddAutoCheckBoxButton()
+{
+	return CWAddButton(NULL, NULL, NULL, CWButtonCheckBox);
+}
+
+//添加一个三选复选框
+HWND CWndFrame::CWAddAuto3StateButton()
+{
+	return CWAddButton(NULL, NULL, NULL, CWButtonState);
+}
+
+//添加一个单选框
+HWND CWndFrame::CWAddAutoRadioButton()
+{
+	return CWAddButton(NULL, NULL, NULL, CWButtonRadio);
+}
+
+//添加一个分组框
+HWND CWndFrame::CWAddGroupBoxButton()
+{
+	return CWAddButton(NULL, NULL, NULL, CWButtonGroup);
+}
+
 //删除一个按钮
 VOID CWndFrame::CWDeleteButton(HWND ButtonHwnd)
 {
@@ -346,6 +407,25 @@ VOID CWndFrame::CWAddBmpToButton(HWND ButtonHwnd, CHAR* pFile, int nWidth, int n
 			SendMessage(ButtonHwnd, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)ls->hBitmap);
 		}
 	}
+}
+
+//移动按钮位置
+VOID CWndFrame::CWMoveButtonPos(HWND ButtonHwnd,int X, int Y)
+{
+	RECT RectTemp = { 0 };
+	if (GetWindowRect(ButtonHwnd, &RectTemp) == NULL)return;
+	MoveWindow(ButtonHwnd, X, Y, (RectTemp.right-RectTemp.left), (RectTemp.bottom-RectTemp.top), FALSE);
+}
+
+//设置按钮大小
+VOID CWndFrame::CWSetButtonSize(HWND ButtonHwnd, int Wide, int High)
+{
+	RECT RectWindow = { 0 };
+	RECT RectButton = { 0 };
+	if (GetWindowRect(m_WindowHwnd, &RectWindow) == NULL)return;
+	if (GetWindowRect(ButtonHwnd, &RectButton) == NULL)return;
+	//我也不知道，但是非客户区的上是30，左边是8吧
+	MoveWindow(ButtonHwnd, RectButton.left-RectWindow.left-8,RectButton.top-RectWindow.top-30, Wide, High, FALSE);
 }
 
 //设置按钮的字符串
