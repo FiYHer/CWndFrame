@@ -48,6 +48,10 @@ using namespace std;//必备命名空间
 #define CWButtonUnCheck 0//不选择状态
 #define CWButtonMinate 2//灰色状态
 
+
+
+
+
 #define CWEdit "EDIT"//编辑框类名
 #define CWEditStyle (WS_CHILD|WS_VISIBLE|ES_MULTILINE)//编辑框类型
 #define CWEditID 6000//编辑框默认ID
@@ -60,6 +64,24 @@ using namespace std;//必备命名空间
 #define CWEditAutoScroll (WS_CHILD|WS_VISIBLE|ES_AUTOHSCROLL|ES_AUTOVSCROLL)//自动滚动编辑框
 #define CWEditNumber (WS_CHILD|WS_VISIBLE|ES_NUMBER)//数字编辑框
 #define CWEditReadOnly (WS_CHILD|WS_VISIBLE|ES_READONLY)//只读编辑框
+
+
+
+
+
+#define CWScrollBar "SCROLLBAR"//滚动条类名
+#define CWScrollBarVertStyle WS_CHILD|WS_VISIBLE|SB_VERT//滚动条垂直类型
+#define CWscrollBarHorzStyle WS_CHILD|WS_VISIBLE|SB_VERT//滚动条水平类型
+#define CWScrollBarId 9000//滚动条默认ID
+#define CWScrollBarName "ScrollBar"//默认滚动条名字
+#define CWScrollBarX 0//默认滚动条x位置
+#define CWScrollBarY 0//默认滚动条y位置
+#define CWScrollBarHeight 100//默认滚动条高
+#define CWScrollBarWidth 100//默认滚动条宽
+
+
+
+
 
 typedef list<UINT> EventList;
 
@@ -113,6 +135,18 @@ typedef struct strEditInfo
 }EditInfo, *PEditInfo;
 typedef list<EditInfo> EditList;
 
+//滚动条控件
+typedef struct strScrollBarInfo
+{
+	HwndIndo hwndInfo;
+	int Min;//最大值
+	int Max;//最小值
+	int CurrentIndex;//当前值
+	bool Vert;//是否是垂直
+	int LineGranularity;//行粒度
+	int PageGranularity;//页粒度
+}ScrollBarInfo,*PScrollBarInfo;
+typedef list<ScrollBarInfo> ScrollBarList;
 
 
 
